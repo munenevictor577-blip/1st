@@ -1,32 +1,54 @@
-name: Build Android APK
+name: Build KivyMD APK
 
 on:
   push:
-    branches: [main]
+    branches: [ "main" ]
   pull_request:
-    branches: [main]
+    branches: [ "main" ]
+  workflow_dispatch:   # allow manual trigger
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Build APK
-        uses: ArtemSBulgakov/buildozer-action@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          command: buildozer android debug
-          buildozer_version: master
+          python-version: "3.10"
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-debug
-          path: ${{ steps.build.outputs.filename }}
+      - name: Install Poetry
+        run: |
+          pip install poetry
 
-      - name: Cahe Buildozer
-        uses: actions/cache@v4
+      - name: Cache Buildozer & SDK
+        uses: actions/cache@v3
         with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          path: |
+            .buildozer
+            ~/.buildozer
+            ~/.gradle
+          key: buildozer-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}
+
+      - name: Install project dependencies
+        run: |
+          poetry install
+
+      - name: Install Buildozer
+        run: |
+          poetry add buildozer
+
+      - name: Build APK (debug)
+        run: |
+          poetry run buildozer -v android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: kivymd-app-apk
+          path: bin/*.apk
