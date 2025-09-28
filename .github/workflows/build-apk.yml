@@ -39,7 +39,7 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          poetry install
+          poetry install --no-root
           poetry add buildozer cython==3.0.11
 
       - name: Build APK
